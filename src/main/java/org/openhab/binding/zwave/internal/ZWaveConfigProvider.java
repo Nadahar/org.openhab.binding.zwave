@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
 import org.openhab.binding.zwave.handler.ZWaveControllerHandler;
@@ -63,6 +64,7 @@ import org.slf4j.LoggerFactory;
  * @author Chris Jackson
  *
  */
+@NonNullByDefault
 @Component(immediate = true, service = { ConfigDescriptionProvider.class, ConfigOptionProvider.class })
 public class ZWaveConfigProvider
         implements ConfigDescriptionProvider, ConfigOptionProvider, RegistryChangeListener<ThingType> {
@@ -121,13 +123,13 @@ public class ZWaveConfigProvider
     }
 
     @Override
-    public Collection<ConfigDescription> getConfigDescriptions(Locale locale) {
+    public Collection<ConfigDescription> getConfigDescriptions(@Nullable Locale locale) {
         logger.debug("getConfigDescriptions called");
         return Collections.emptySet();
     }
 
     @Override
-    public ConfigDescription getConfigDescription(URI uri, Locale locale) {
+    public @Nullable ConfigDescription getConfigDescription(URI uri, @Nullable Locale locale) {
         if (!"thing".equals(uri.getScheme()) && !"thing-type".equals(uri.getScheme())) {
             return null;
         }
@@ -203,7 +205,7 @@ public class ZWaveConfigProvider
         groups.add(ConfigDescriptionParameterGroupBuilder.create("thingcfg").withContext("home")
                 .withLabel("Device Configuration").withDescription("Device Configuration").build());
 
-        List<ParameterOption> options = new ArrayList<ParameterOption>();
+        List<ParameterOption> options = new ArrayList<>();
         options.add(new ParameterOption("600", "10 Minutes"));
         options.add(new ParameterOption("1800", "30 Minutes"));
         options.add(new ParameterOption("3600", "1 Hour"));
@@ -363,6 +365,7 @@ public class ZWaveConfigProvider
         }
 
         // Get the properties
+        @NonNullByDefault({})
         Map<String, String> thingProperties = thingType.getProperties();
 
         String refProperty = thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_REFERENCES);
@@ -522,7 +525,8 @@ public class ZWaveConfigProvider
     }
 
     @Override
-    public Collection<ParameterOption> getParameterOptions(URI uri, String param, String context, Locale locale) {
+    public @Nullable Collection<ParameterOption> getParameterOptions(URI uri, String param, @Nullable String context,
+            @Nullable Locale locale) {
         // We need to update the options of all requests for association groups...
         if (!"thing".equals(uri.getScheme())) {
             return null;
@@ -546,7 +550,10 @@ public class ZWaveConfigProvider
         int nodeId = Integer.parseInt(thingUID.getId().substring(4));
 
         Thing thing = getThing(thingUID);
-        ThingUID bridgeUID = thing.getBridgeUID();
+        ThingUID bridgeUID = thing == null ? null : thing.getBridgeUID();
+        if (thing == null || bridgeUID == null) {
+            return null;
+        }
 
         // Get the controller for this thing
         Thing bridge = getThing(bridgeUID);

@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
 import org.openhab.binding.zwave.handler.ZWaveControllerHandler;
 import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
@@ -73,7 +74,7 @@ public class ZWaveDiscoveryService extends AbstractDiscoveryService implements Z
     }
 
     @Override
-    public Set<ThingTypeUID> getSupportedThingTypes() {
+    public Set<@NonNull ThingTypeUID> getSupportedThingTypes() {
         return configProvider.getSupportedThingTypes();
     }
 
@@ -163,9 +164,6 @@ public class ZWaveDiscoveryService extends AbstractDiscoveryService implements Z
         // Search the database for this product information
         ZWaveProduct foundProduct = null;
         for (ZWaveProduct product : configProvider.getProductIndex()) {
-            if (product == null) {
-                continue;
-            }
             logger.trace("NODE {}: Checking {}", node.getNodeId(), product.getThingTypeUID());
             if (product.match(node) == true) {
                 foundProduct = product;
@@ -197,6 +195,12 @@ public class ZWaveDiscoveryService extends AbstractDiscoveryService implements Z
 
             // And create the new thing
             ThingType thingType = configProvider.getThingType(foundProduct.getThingTypeUID());
+            if (thingType == null) {
+                logger.warn(
+                        "Failed to register discovered device because the thing type for \"{}\" wasn't be found: {}",
+                        foundProduct.getThingTypeUID(), foundProduct);
+                return;
+            }
             label += String.format(": %s", thingType.getLabel());
 
             thingTypeUID = foundProduct.getThingTypeUID();

@@ -227,7 +227,7 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
                     channel.getChannelTypeUID());
 
             // Process the channel properties and configuration
-            Map<String, String> properties = channel.getProperties();
+            Map<@NonNull String, @NonNull String> properties = channel.getProperties();
             Configuration configuration = channel.getConfiguration();
 
             for (String key : properties.keySet()) {
@@ -1493,7 +1493,7 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
 
             switch (event.getState()) {
                 case AWAKE:
-                    Map<String, String> properties = editProperties();
+                    Map<@NonNull String, @NonNull String> properties = editProperties();
                     properties.put(ZWaveBindingConstants.PROPERTY_LASTWAKEUP, getISO8601StringForCurrentDate());
                     updateProperties(properties);
                     break;
@@ -1539,7 +1539,7 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
                 case HEAL_START:
                     break;
                 case HEAL_END:
-                    Map<String, String> properties = editProperties();
+                    Map<@NonNull String, @NonNull String> properties = editProperties();
                     properties.put(ZWaveBindingConstants.PROPERTY_LASTHEAL, getISO8601StringForCurrentDate());
                     updateProperties(properties);
                     break;
@@ -1660,7 +1660,7 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
         logger.debug("NODE {}: Updating node properties.", nodeId);
 
         // Update property information about this device
-        Map<String, String> properties = editProperties();
+        Map<@NonNull String, @NonNull String> properties = editProperties();
 
         updateProperty(ZWaveBindingConstants.PROPERTY_NODEID, Integer.toString(nodeId));
 
