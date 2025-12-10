@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.binding.zwave.handler;
+package org.openhab.binding.zwave.internal.handler;
 
 import static org.openhab.binding.zwave.ZWaveBindingConstants.*;
 

@@ -14,8 +14,8 @@ package org.openhab.binding.zwave.internal.converter;
 
 import java.math.BigDecimal;
 
-import org.openhab.binding.zwave.handler.ZWaveControllerHandler;
-import org.openhab.binding.zwave.handler.ZWaveThingChannel;
+import org.openhab.binding.zwave.internal.handler.ZWaveControllerHandler;
+import org.openhab.binding.zwave.internal.handler.ZWaveThingChannel;
 import org.openhab.binding.zwave.internal.protocol.event.ZWaveCommandClassValueEvent;
 import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.types.State;

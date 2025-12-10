@@ -27,7 +27,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
-import org.openhab.binding.zwave.handler.ZWaveControllerHandler;
+import org.openhab.binding.zwave.internal.handler.ZWaveControllerHandler;
 import org.openhab.binding.zwave.internal.protocol.ZWaveEndpoint;
 import org.openhab.binding.zwave.internal.protocol.ZWaveNode;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveCommandClass;

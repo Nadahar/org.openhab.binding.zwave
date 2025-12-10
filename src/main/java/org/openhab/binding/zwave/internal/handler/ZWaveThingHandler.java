@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.binding.zwave.handler;
+package org.openhab.binding.zwave.internal.handler;
 
 import java.math.BigDecimal;
 import java.text.DateFormat;
@@ -34,9 +34,9 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
-import org.openhab.binding.zwave.handler.ZWaveThingChannel.DataType;
 import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.ZWaveProduct;
+import org.openhab.binding.zwave.internal.handler.ZWaveThingChannel.DataType;
 import org.openhab.binding.zwave.internal.protocol.ZWaveAssociation;
 import org.openhab.binding.zwave.internal.protocol.ZWaveAssociationGroup;
 import org.openhab.binding.zwave.internal.protocol.ZWaveConfigurationParameter;
@@ -734,8 +734,8 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
                     // This should be an array of nodes, and/or nodes and endpoints
                     ArrayList<String> paramValues = new ArrayList<String>();
                     Object parameter = configurationParameter.getValue();
-                    if (parameter instanceof List) {
-                        paramValues.addAll((List) configurationParameter.getValue());
+                    if (parameter instanceof List list) {
+                        paramValues.addAll(list);
                     } else if (parameter instanceof String) {
                         String strParam = ((String) parameter).trim();
                         // Some UIs seem to be sending arrays as strings!!!

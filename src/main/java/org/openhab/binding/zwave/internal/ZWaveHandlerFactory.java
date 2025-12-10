@@ -20,10 +20,10 @@ import java.util.Map;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
-import org.openhab.binding.zwave.discovery.ZWaveDiscoveryService;
-import org.openhab.binding.zwave.handler.ZWaveControllerHandler;
-import org.openhab.binding.zwave.handler.ZWaveSerialHandler;
-import org.openhab.binding.zwave.handler.ZWaveThingHandler;
+import org.openhab.binding.zwave.internal.discovery.ZWaveDiscoveryService;
+import org.openhab.binding.zwave.internal.handler.ZWaveControllerHandler;
+import org.openhab.binding.zwave.internal.handler.ZWaveSerialHandler;
+import org.openhab.binding.zwave.internal.handler.ZWaveThingHandler;
 import org.openhab.core.config.discovery.DiscoveryService;
 import org.openhab.core.io.transport.serial.SerialPortManager;
 import org.openhab.core.thing.Bridge;

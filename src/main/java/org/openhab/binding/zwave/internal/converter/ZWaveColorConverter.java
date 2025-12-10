@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.openhab.binding.zwave.handler.ZWaveControllerHandler;
-import org.openhab.binding.zwave.handler.ZWaveThingChannel;
+import org.openhab.binding.zwave.internal.handler.ZWaveControllerHandler;
+import org.openhab.binding.zwave.internal.handler.ZWaveThingChannel;
 import org.openhab.binding.zwave.internal.protocol.ZWaveNode;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveColorCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveColorCommandClass.ZWaveColorType;
@@ -33,6 +33,7 @@ import org.openhab.core.library.types.PercentType;
 import org.openhab.core.library.types.StringType;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.State;
+import org.openhab.core.util.ColorUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,9 +159,10 @@ public class ZWaveColorConverter extends ZWaveCommandClassConverter {
             level = color.getBrightness().intValue();
 
             // Queue the command
-            colors.put(ZWaveColorType.RED, scaleColor(color.getRed()));
-            colors.put(ZWaveColorType.GREEN, scaleColor(color.getGreen()));
-            colors.put(ZWaveColorType.BLUE, scaleColor(color.getBlue()));
+            PercentType[] rgbColor = ColorUtil.hsbToRgbPercent(color);
+            colors.put(ZWaveColorType.RED, scaleColor(rgbColor[0]));
+            colors.put(ZWaveColorType.GREEN, scaleColor(rgbColor[1]));
+            colors.put(ZWaveColorType.BLUE, scaleColor(rgbColor[2]));
             if (colorCommandClass.isColorSupported(ZWaveColorType.COLD_WHITE)) {
                 colors.put(ZWaveColorType.COLD_WHITE, 0);
             }
