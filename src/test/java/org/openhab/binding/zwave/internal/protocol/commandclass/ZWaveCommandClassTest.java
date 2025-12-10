@@ -24,6 +24,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.SerialMessage;
 import org.openhab.binding.zwave.internal.protocol.SerialMessage.SerialMessageClass;
 import org.openhab.binding.zwave.internal.protocol.SerialMessage.SerialMessageType;
@@ -82,7 +83,8 @@ public class ZWaveCommandClassTest {
             mockedController = Mockito.mock(ZWaveController.class);
             argument = ArgumentCaptor.forClass(ZWaveEvent.class);
             Mockito.doNothing().when(mockedController).notifyEventListeners(argument.capture());
-            mockedNode = new ZWaveNode(0, 0, mockedController);
+            ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+            mockedNode = new ZWaveNode(0, 0, mockedController, configProvider);
             ZWaveEndpoint mockedEndpoint0 = Mockito.mock(ZWaveEndpoint.class);
             ZWaveEndpoint mockedEndpoint1 = Mockito.mock(ZWaveEndpoint.class);
             ZWaveEndpoint mockedEndpoint2 = Mockito.mock(ZWaveEndpoint.class);

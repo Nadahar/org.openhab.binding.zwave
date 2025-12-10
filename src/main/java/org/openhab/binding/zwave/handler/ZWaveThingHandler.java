@@ -31,6 +31,7 @@ import java.util.TimeZone;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
 import org.openhab.binding.zwave.handler.ZWaveThingChannel.DataType;
@@ -98,6 +99,7 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
     private final Logger logger = LoggerFactory.getLogger(ZWaveThingHandler.class);
 
     private ZWaveControllerHandler controllerHandler;
+    private final @NonNull ZWaveConfigProvider configProvider;
 
     private boolean finalTypeSet = false;
 
@@ -125,8 +127,9 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
 
     private long commandPollDelay = 1500;
 
-    public ZWaveThingHandler(Thing zwaveDevice) {
+    public ZWaveThingHandler(Thing zwaveDevice, ZWaveConfigProvider configProvider) {
         super(zwaveDevice);
+        this.configProvider = configProvider;
     }
 
     @Override
@@ -352,7 +355,7 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
         }
 
         ZWaveProduct foundProduct = null;
-        for (ZWaveProduct product : ZWaveConfigProvider.getProductIndex()) {
+        for (ZWaveProduct product : configProvider.getProductIndex()) {
             if (product == null) {
                 continue;
             }
@@ -801,7 +804,7 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
                             newMembers.addAssociation(new ZWaveAssociation(controllerHandler.getOwnNodeId(), 1));
                         }
 
-                        ThingType thingType = ZWaveConfigProvider.getThingType(node);
+                        ThingType thingType = configProvider.getThingType(node);
                         if (thingType == null) {
                             logger.debug("NODE {}: Thing type not found for association check", node.getNodeId());
                         } else {

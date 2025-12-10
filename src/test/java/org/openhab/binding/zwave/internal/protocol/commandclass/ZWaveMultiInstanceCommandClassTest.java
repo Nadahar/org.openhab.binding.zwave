@@ -25,6 +25,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.SerialMessage;
 import org.openhab.binding.zwave.internal.protocol.SerialMessage.SerialMessageClass;
 import org.openhab.binding.zwave.internal.protocol.SerialMessage.SerialMessageType;
@@ -73,7 +74,8 @@ public class ZWaveMultiInstanceCommandClassTest extends ZWaveCommandClassTest {
             final ZWaveController mockedController = Mockito.mock(ZWaveController.class);
             argument = ArgumentCaptor.forClass(ZWaveEvent.class);
             Mockito.doNothing().when(mockedController).notifyEventListeners(argument.capture());
-            final ZWaveNode node = new ZWaveNode(0, 0, mockedController);// Mockito.mock(ZWaveNode.class);
+            ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+            final ZWaveNode node = new ZWaveNode(0, 0, mockedController, configProvider);// Mockito.mock(ZWaveNode.class);
 
             // Get the command class and process the response
             ZWaveMultiInstanceCommandClass cls = (ZWaveMultiInstanceCommandClass) ZWaveCommandClass

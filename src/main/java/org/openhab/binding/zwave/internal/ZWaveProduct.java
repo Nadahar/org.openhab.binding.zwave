@@ -22,12 +22,12 @@ import org.osgi.framework.Version;
  *
  */
 public class ZWaveProduct {
-    ThingTypeUID thingTypeUID;
-    Integer manufacturer;
-    Integer type;
-    Integer id;
-    Version versionMin;
-    Version versionMax;
+    final ThingTypeUID thingTypeUID;
+    final Integer manufacturer;
+    final Integer type;
+    final Integer id;
+    final Version versionMin;
+    final Version versionMax;
 
     public ZWaveProduct(ThingTypeUID thingTypeUID, Integer manufacturer, Integer type, Integer id) {
         this(thingTypeUID, manufacturer, type, id, null, null);

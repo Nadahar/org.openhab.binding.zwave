@@ -25,8 +25,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.zwave.internal.HexToIntegerConverter;
+import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveAssociationCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveCRC16EncapsulationCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveCommandClass;
@@ -144,12 +146,12 @@ public class ZWaveNode {
      * @param nodeId the node ID to use.
      * @param controller the wave controller instance
      */
-    public ZWaveNode(int homeId, int nodeId, ZWaveController controller) {
+    public ZWaveNode(int homeId, int nodeId, ZWaveController controller, @NonNull ZWaveConfigProvider configProvider) {
         nodeState = ZWaveNodeState.ALIVE; // TODO: ??? INITIALIZING;
         this.homeId = homeId;
         this.nodeId = nodeId;
         this.controller = controller;
-        this.nodeInitStageAdvancer = new ZWaveNodeInitStageAdvancer(this, controller);
+        this.nodeInitStageAdvancer = new ZWaveNodeInitStageAdvancer(this, controller, configProvider);
 
         ZWaveEndpoint endpoint0 = new ZWaveEndpoint(0);
         endpoints.put(0, endpoint0);
@@ -172,14 +174,15 @@ public class ZWaveNode {
      * Set defaults here if it's important!!!
      *
      * @param controller the wave controller instance
+     * @param configProvider the {@link ZWaveConfigProvider} instance.
      */
-    public void setRestoredFromConfigfile(ZWaveController controller) {
+    public void setRestoredFromConfigfile(ZWaveController controller, @NonNull ZWaveConfigProvider configProvider) {
         nodeState = ZWaveNodeState.ALIVE;
 
         this.controller = controller;
 
         // Create the initialisation advancer and tell it we've loaded from file
-        nodeInitStageAdvancer = new ZWaveNodeInitStageAdvancer(this, controller);
+        nodeInitStageAdvancer = new ZWaveNodeInitStageAdvancer(this, controller, configProvider);
         nodeInitStageAdvancer.setRestoredFromConfigfile();
     }
 

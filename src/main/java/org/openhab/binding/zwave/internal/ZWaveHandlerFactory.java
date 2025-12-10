@@ -34,6 +34,7 @@ import org.openhab.core.thing.binding.BaseThingHandlerFactory;
 import org.openhab.core.thing.binding.ThingHandler;
 import org.openhab.core.thing.binding.ThingHandlerFactory;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
@@ -52,6 +53,13 @@ public class ZWaveHandlerFactory extends BaseThingHandlerFactory {
     private Map<ThingUID, ServiceRegistration<?>> discoveryServiceRegs = new HashMap<>();
 
     private @NonNullByDefault({}) SerialPortManager serialPortManager;
+
+    private final ZWaveConfigProvider zwaveConfigProvider;
+
+    @Activate
+    public ZWaveHandlerFactory(@Reference ZWaveConfigProvider zwaveConfigProvider) {
+        this.zwaveConfigProvider = zwaveConfigProvider;
+    }
 
     @Reference
     protected void setSerialPortManager(final SerialPortManager serialPortManager) {
@@ -81,11 +89,11 @@ public class ZWaveHandlerFactory extends BaseThingHandlerFactory {
 
         // Handle controllers here
         if (thingTypeUID.equals(CONTROLLER_SERIAL)) {
-            controller = new ZWaveSerialHandler((Bridge) thing, serialPortManager);
+            controller = new ZWaveSerialHandler((Bridge) thing, serialPortManager, zwaveConfigProvider);
         }
 
         if (controller != null) {
-            ZWaveDiscoveryService discoveryService = new ZWaveDiscoveryService(controller, 60);
+            ZWaveDiscoveryService discoveryService = new ZWaveDiscoveryService(controller, zwaveConfigProvider, 60);
             discoveryService.activate();
 
             discoveryServiceRegs.put(controller.getThing().getUID(), bundleContext.registerService(
@@ -95,7 +103,7 @@ public class ZWaveHandlerFactory extends BaseThingHandlerFactory {
         }
 
         // Everything else gets handled in a single handler
-        return new ZWaveThingHandler(thing);
+        return new ZWaveThingHandler(thing, zwaveConfigProvider);
     }
 
     @Override

@@ -17,14 +17,14 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.concurrent.CopyOnWriteArraySet;
 
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
 import org.openhab.binding.zwave.handler.ZWaveControllerHandler;
 import org.openhab.binding.zwave.internal.protocol.ZWaveEndpoint;
@@ -35,6 +35,7 @@ import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveUserCodeCom
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveUserCodeCommandClass.UserCode;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveUserCodeCommandClass.UserIdStatusType;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveWakeUpCommandClass;
+import org.openhab.core.common.registry.RegistryChangeListener;
 import org.openhab.core.config.core.ConfigDescription;
 import org.openhab.core.config.core.ConfigDescriptionBuilder;
 import org.openhab.core.config.core.ConfigDescriptionParameter;
@@ -63,55 +64,60 @@ import org.slf4j.LoggerFactory;
  *
  */
 @Component(immediate = true, service = { ConfigDescriptionProvider.class, ConfigOptionProvider.class })
-public class ZWaveConfigProvider implements ConfigDescriptionProvider, ConfigOptionProvider {
-    private final static Logger logger = LoggerFactory.getLogger(ZWaveConfigProvider.class);
+public class ZWaveConfigProvider
+        implements ConfigDescriptionProvider, ConfigOptionProvider, RegistryChangeListener<ThingType> {
+    private final Logger logger = LoggerFactory.getLogger(ZWaveConfigProvider.class);
 
-    private static ThingRegistry thingRegistry;
-    private static ThingTypeRegistry thingTypeRegistry;
-    private static ConfigDescriptionRegistry configDescriptionRegistry;
+    private @Nullable volatile ThingRegistry thingRegistry;
+    private @Nullable volatile ThingTypeRegistry thingTypeRegistry;
+    private @Nullable volatile ConfigDescriptionRegistry configDescriptionRegistry;
 
-    private static Set<ThingTypeUID> zwaveThingTypeUIDList = new HashSet<ThingTypeUID>();
-    private static List<ZWaveProduct> productIndex = new ArrayList<ZWaveProduct>();
+    private final Set<ThingTypeUID> zwaveThingTypeUIDs = new CopyOnWriteArraySet<ThingTypeUID>();
 
-    private static final Object productIndexLock = new Object();
+    // All access must be guarded by "productIndex"
+    private final List<ZWaveProduct> productIndex = new ArrayList<>();
 
     // The following is a list of classes that are controllable.
     // This is used to filter endpoints so that when we display a list of nodes/endpoints
     // for configuring associations, we only list endpoints that are useful
-    private static final Set<ZWaveCommandClass.CommandClass> controllableClasses = Collections
-            .unmodifiableSet(Stream.of(CommandClass.COMMAND_CLASS_BASIC, CommandClass.COMMAND_CLASS_SWITCH_BINARY,
-                    CommandClass.COMMAND_CLASS_SWITCH_MULTILEVEL, CommandClass.COMMAND_CLASS_SWITCH_TOGGLE_BINARY,
-                    CommandClass.COMMAND_CLASS_SWITCH_TOGGLE_MULTILEVEL, CommandClass.COMMAND_CLASS_CHIMNEY_FAN,
-                    CommandClass.COMMAND_CLASS_THERMOSTAT_HEATING, CommandClass.COMMAND_CLASS_THERMOSTAT_MODE,
-                    CommandClass.COMMAND_CLASS_THERMOSTAT_OPERATING_STATE,
-                    CommandClass.COMMAND_CLASS_THERMOSTAT_SETPOINT, CommandClass.COMMAND_CLASS_THERMOSTAT_FAN_MODE,
-                    CommandClass.COMMAND_CLASS_THERMOSTAT_FAN_STATE).collect(Collectors.toSet()));
+    private static final Set<ZWaveCommandClass.CommandClass> CONTROLLABLE_CLASSES = Set.of(
+            CommandClass.COMMAND_CLASS_BASIC, CommandClass.COMMAND_CLASS_SWITCH_BINARY,
+            CommandClass.COMMAND_CLASS_SWITCH_MULTILEVEL, CommandClass.COMMAND_CLASS_SWITCH_TOGGLE_BINARY,
+            CommandClass.COMMAND_CLASS_SWITCH_TOGGLE_MULTILEVEL, CommandClass.COMMAND_CLASS_CHIMNEY_FAN,
+            CommandClass.COMMAND_CLASS_THERMOSTAT_HEATING, CommandClass.COMMAND_CLASS_THERMOSTAT_MODE,
+            CommandClass.COMMAND_CLASS_THERMOSTAT_OPERATING_STATE, CommandClass.COMMAND_CLASS_THERMOSTAT_SETPOINT,
+            CommandClass.COMMAND_CLASS_THERMOSTAT_FAN_MODE, CommandClass.COMMAND_CLASS_THERMOSTAT_FAN_STATE);
 
     @Reference
     protected void setThingRegistry(ThingRegistry thingRegistry) {
-        ZWaveConfigProvider.thingRegistry = thingRegistry;
+        this.thingRegistry = thingRegistry;
     }
 
     protected void unsetThingRegistry(ThingRegistry thingRegistry) {
-        ZWaveConfigProvider.thingRegistry = null;
+        this.thingRegistry = null;
     }
 
     @Reference
     protected void setThingTypeRegistry(ThingTypeRegistry thingTypeRegistry) {
-        ZWaveConfigProvider.thingTypeRegistry = thingTypeRegistry;
+        this.thingTypeRegistry = thingTypeRegistry;
+        initialiseZWaveThings();
     }
 
     protected void unsetThingTypeRegistry(ThingTypeRegistry thingTypeRegistry) {
-        ZWaveConfigProvider.thingTypeRegistry = null;
+        this.thingTypeRegistry = null;
+        synchronized (productIndex) {
+            zwaveThingTypeUIDs.clear();
+            productIndex.clear();
+        }
     }
 
     @Reference
     protected void setConfigDescriptionRegistry(ConfigDescriptionRegistry configDescriptionRegistry) {
-        ZWaveConfigProvider.configDescriptionRegistry = configDescriptionRegistry;
+        this.configDescriptionRegistry = configDescriptionRegistry;
     }
 
     protected void unsetConfigDescriptionRegistry(ConfigDescriptionRegistry configDescriptionRegistry) {
-        ZWaveConfigProvider.configDescriptionRegistry = null;
+        this.configDescriptionRegistry = null;
     }
 
     @Override
@@ -332,95 +338,128 @@ public class ZWaveConfigProvider implements ConfigDescriptionProvider, ConfigOpt
         return ConfigDescriptionBuilder.create(uri).withParameters(parameters).withParameterGroups(groups).build();
     }
 
-    private static void initialiseZWaveThings() {
+    private void initialiseZWaveThings() {
+        ThingTypeRegistry ttRegistry = thingTypeRegistry;
         // Check that we know about the registry
-        if (thingTypeRegistry == null) {
+        if (ttRegistry == null) {
             return;
         }
 
-        synchronized (productIndexLock) {
-            zwaveThingTypeUIDList = new HashSet<ThingTypeUID>();
-            productIndex = new ArrayList<ZWaveProduct>();
+        synchronized (productIndex) {
+            zwaveThingTypeUIDs.clear();
+            productIndex.clear();
 
-            // Get all the thing types
-            Collection<ThingType> thingTypes = thingTypeRegistry.getThingTypes();
-            for (ThingType thingType : thingTypes) {
-                // Is this for our binding?
-                if (ZWaveBindingConstants.BINDING_ID.equals(thingType.getBindingId()) == false) {
-                    continue;
-                }
+            // Register all existing thing types from the registry
+            for (ThingType thingType : ttRegistry.getThingTypes()) {
+                updateThingType(null, thingType);
+            }
+        }
+    }
 
-                // Create a list of all things supported by this binding
-                zwaveThingTypeUIDList.add(thingType.getUID());
+    private void updateThingType(@Nullable ThingType oldThingType, ThingType thingType) {
+        // Is it for this binding?
+        if (!ZWaveBindingConstants.BINDING_ID.equals(thingType.getBindingId())) {
+            return;
+        }
 
-                // Get the properties
-                Map<String, String> thingProperties = thingType.getProperties();
+        // Get the properties
+        Map<String, String> thingProperties = thingType.getProperties();
 
-                if (thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_REFERENCES) == null) {
-                    logger.debug("ZWave product {} has no references!", thingType.getUID());
-                    continue;
-                }
+        String refProperty = thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_REFERENCES);
+        if (refProperty == null) {
+            logger.debug("ZWave product {} has no references!", thingType.getUID());
+            if (oldThingType != null) {
+                removeThingType(oldThingType);
+            }
+            return;
+        }
 
-                String[] references = thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_REFERENCES).split(",");
-                for (String ref : references) {
-                    String[] values = ref.split(":");
-                    Integer type;
-                    Integer id = null;
-                    if (values.length != 2) {
-                        logger.debug("ZWave product {} has invalid references! '{}'", thingType.getUID(),
-                                thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_REFERENCES));
-                        continue;
+        String[] references = refProperty.split("\\s?,\\s?");
+        Integer id;
+        Integer type;
+        String[] values;
+        ThingTypeUID thingTypeUID = thingType.getUID();
+        List<ZWaveProduct> newProducts = new ArrayList<>();
+        for (String ref : references) {
+            values = ref.split(":");
+            id = null;
+            if (values.length != 2) {
+                logger.debug("ZWave product {} has invalid references! '{}'", thingType.getUID(),
+                        thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_REFERENCES));
+                continue;
+            }
+
+            type = Integer.parseInt(values[0], 16);
+            if (!values[1].trim().equals("*")) {
+                id = Integer.parseInt(values[1], 16);
+            }
+            String versionMin = thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_VERSIONMIN);
+            String versionMax = thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_VERSIONMAX);
+            newProducts.add(new ZWaveProduct(thingTypeUID,
+                    Integer.parseInt(thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_MANUFACTURER), 16), type,
+                    id, versionMin, versionMax));
+        }
+        synchronized (productIndex) {
+            if (oldThingType != null) {
+                thingTypeUID = oldThingType.getUID();
+                zwaveThingTypeUIDs.remove(thingTypeUID);
+                ZWaveProduct tempProduct;
+                for (Iterator<ZWaveProduct> iterator = productIndex.iterator(); iterator.hasNext();) {
+                    tempProduct = iterator.next();
+                    if (thingTypeUID.equals(tempProduct.thingTypeUID)) {
+                        iterator.remove();
                     }
+                }
+            }
+            zwaveThingTypeUIDs.add(thingType.getUID());
+            productIndex.addAll(newProducts);
+        }
+    }
 
-                    type = Integer.parseInt(values[0], 16);
-                    if (!values[1].trim().equals("*")) {
-                        id = Integer.parseInt(values[1], 16);
-                    }
-                    String versionMin = thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_VERSIONMIN);
-                    String versionMax = thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_VERSIONMAX);
-                    productIndex.add(new ZWaveProduct(thingType.getUID(),
-                            Integer.parseInt(thingProperties.get(ZWaveBindingConstants.PROPERTY_XML_MANUFACTURER), 16),
-                            type, id, versionMin, versionMax));
+    private void removeThingType(ThingType thingType) {
+        synchronized (productIndex) {
+            zwaveThingTypeUIDs.remove(thingType.getUID());
+            ZWaveProduct tempProduct;
+            ThingTypeUID thingTypeUID = thingType.getUID();
+            for (Iterator<ZWaveProduct> iterator = productIndex.iterator(); iterator.hasNext();) {
+                tempProduct = iterator.next();
+                if (thingTypeUID.equals(tempProduct.thingTypeUID)) {
+                    iterator.remove();
                 }
             }
         }
     }
 
-    public static synchronized List<ZWaveProduct> getProductIndex() {
-        if (productIndex.size() == 0) {
-            initialiseZWaveThings();
+    public List<ZWaveProduct> getProductIndex() {
+        synchronized (productIndex) {
+            return List.copyOf(productIndex);
         }
-        return productIndex;
     }
 
-    public static Set<ThingTypeUID> getSupportedThingTypes() {
-        if (zwaveThingTypeUIDList.size() == 0) {
+    public Set<ThingTypeUID> getSupportedThingTypes() {
+        if (zwaveThingTypeUIDs.size() == 0) {
             initialiseZWaveThings();
         }
-        return zwaveThingTypeUIDList;
+        return zwaveThingTypeUIDs;
     }
 
-    public static ThingType getThingType(ThingTypeUID thingTypeUID) {
-        // Check that we know about the registry
-        if (thingTypeRegistry == null) {
+    public @Nullable ThingType getThingType(ThingTypeUID thingTypeUID) {
+        ThingTypeRegistry ttRegistry = thingTypeRegistry;
+        return ttRegistry == null ? null : ttRegistry.getThingType(thingTypeUID);
+    }
+
+    public @Nullable ThingType getThingType(ZWaveNode node) {
+        ThingTypeRegistry ttRegistry = thingTypeRegistry;
+        if (ttRegistry == null) {
+            logger.debug("{}: Unable to get thing type as registry hasn't been set", node.getNodeId());
             return null;
         }
 
-        return thingTypeRegistry.getThingType(thingTypeUID);
-    }
-
-    public static ThingType getThingType(ZWaveNode node) {
-        // Check that we know about the registry
-        if (thingTypeRegistry == null) {
-            logger.debug("{}: Unable to get thing type as registry not set", node.getNodeId());
-            return null;
-        }
-
-        for (ZWaveProduct product : ZWaveConfigProvider.getProductIndex()) {
+        for (ZWaveProduct product : getProductIndex()) {
             logger.trace("{}: Checking {}: {}", node.getNodeId(), product.getThingTypeUID(), product);
             if (product.match(node) == true) {
                 logger.trace("{}: Matched {}: {}", node.getNodeId(), product.getThingTypeUID(), product);
-                return thingTypeRegistry.getThingType(product.thingTypeUID);
+                return ttRegistry.getThingType(product.thingTypeUID);
             }
         }
 
@@ -433,26 +472,21 @@ public class ZWaveConfigProvider implements ConfigDescriptionProvider, ConfigOpt
      * @param type the {@link ThingType} required to retrieve the configuration
      * @return the {@link ConfigDescription}
      */
-    public static ConfigDescription getThingTypeConfig(ThingType type) {
-        // Check that we know about the registry
-        if (configDescriptionRegistry == null) {
-            return null;
-        }
-
+    @Nullable
+    public ConfigDescription getThingTypeConfig(ThingType type) {
         URI configUri = type.getConfigDescriptionURI();
         if (configUri == null) {
             return null;
         }
-        return configDescriptionRegistry.getConfigDescription(configUri);
+
+        ConfigDescriptionRegistry cdRegistry = configDescriptionRegistry;
+        return cdRegistry == null ? null : cdRegistry.getConfigDescription(configUri);
     }
 
-    public static Thing getThing(ThingUID thingUID) {
-        // Check that we know about the registry
-        if (thingRegistry == null) {
-            return null;
-        }
-
-        return thingRegistry.get(thingUID);
+    @Nullable
+    Thing getThing(ThingUID thingUID) {
+        ThingRegistry tRegistry = thingRegistry;
+        return tRegistry == null ? null : tRegistry.get(thingUID);
     }
 
     /**
@@ -462,7 +496,7 @@ public class ZWaveConfigProvider implements ConfigDescriptionProvider, ConfigOpt
      * @return true if a controllable class is supported
      */
     private boolean supportsControllableClass(ZWaveNode node) {
-        for (CommandClass commandClass : controllableClasses) {
+        for (CommandClass commandClass : CONTROLLABLE_CLASSES) {
             if (node.supportsCommandClass(commandClass) == true) {
                 return true;
             }
@@ -478,7 +512,7 @@ public class ZWaveConfigProvider implements ConfigDescriptionProvider, ConfigOpt
      * @return true if a controllable class is supported
      */
     private boolean supportsControllableClass(ZWaveEndpoint endpoint) {
-        for (CommandClass commandClass : controllableClasses) {
+        for (CommandClass commandClass : CONTROLLABLE_CLASSES) {
             if (endpoint.supportsCommandClass(commandClass) == true) {
                 return true;
             }
@@ -577,5 +611,20 @@ public class ZWaveConfigProvider implements ConfigDescriptionProvider, ConfigOpt
         }
 
         return Collections.unmodifiableList(options);
+    }
+
+    @Override
+    public void added(ThingType element) {
+        updateThingType(null, element);
+    }
+
+    @Override
+    public void removed(ThingType element) {
+        removeThingType(element);
+    }
+
+    @Override
+    public void updated(ThingType oldElement, ThingType element) {
+        updateThingType(oldElement, element);
     }
 }

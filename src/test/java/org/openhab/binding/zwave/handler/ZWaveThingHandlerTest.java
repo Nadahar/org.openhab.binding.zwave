@@ -28,6 +28,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
+import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.ZWaveAssociationGroup;
 import org.openhab.binding.zwave.internal.protocol.ZWaveController;
 import org.openhab.binding.zwave.internal.protocol.ZWaveNode;
@@ -62,8 +63,8 @@ public class ZWaveThingHandlerTest {
 
     class ZWaveThingHandlerForTest extends ZWaveThingHandler {
 
-        public ZWaveThingHandlerForTest(Thing zwaveDevice) {
-            super(zwaveDevice);
+        public ZWaveThingHandlerForTest(Thing zwaveDevice, ZWaveConfigProvider configProvider) {
+            super(zwaveDevice, configProvider);
         }
 
         @Override
@@ -80,11 +81,12 @@ public class ZWaveThingHandlerTest {
         ZWaveNode node = Mockito.mock(ZWaveNode.class);
         ZWaveController controller = Mockito.mock(ZWaveController.class);
         ZWaveControllerHandler controllerHandler = Mockito.mock(ZWaveControllerHandler.class);
+        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
 
         Mockito.when(controllerHandler.isControllerMaster()).thenReturn(false);
 
         ThingHandlerCallback thingCallback = Mockito.mock(ThingHandlerCallback.class);
-        ZWaveThingHandler thingHandler = new ZWaveThingHandlerForTest(thing);
+        ZWaveThingHandler thingHandler = new ZWaveThingHandlerForTest(thing, configProvider);
         thingHandler.setCallback(thingCallback);
         payloadCaptor = ArgumentCaptor.forClass(ZWaveCommandClassTransactionPayload.class);
         Field fieldControllerHandler;
@@ -251,7 +253,8 @@ public class ZWaveThingHandlerTest {
 
     @Test
     public void testConvertToDataType() {
-        ZWaveThingHandler sut = new ZWaveThingHandlerForTest(null);
+        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+        ZWaveThingHandler sut = new ZWaveThingHandlerForTest(null, configProvider);
 
         ChannelUID channelUID = new ChannelUID("channel:for:a:test");
         Command command = new QuantityType<>("22 °C");
@@ -264,7 +267,8 @@ public class ZWaveThingHandlerTest {
 
     @Test
     public void testConvertToDataTypeFails() {
-        ZWaveThingHandler sut = new ZWaveThingHandlerForTest(null);
+        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+        ZWaveThingHandler sut = new ZWaveThingHandlerForTest(null, configProvider);
 
         ChannelUID channelUID = new ChannelUID("channel:for:a:test");
 
@@ -283,7 +287,8 @@ public class ZWaveThingHandlerTest {
 
     @Test
     public void getZWaveProperties() {
-        ZWaveThingHandler thingHandler = new ZWaveThingHandlerForTest(Mockito.mock(Thing.class));
+        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+        ZWaveThingHandler thingHandler = new ZWaveThingHandlerForTest(Mockito.mock(Thing.class), configProvider);
 
         Map<String, String> properties;
 

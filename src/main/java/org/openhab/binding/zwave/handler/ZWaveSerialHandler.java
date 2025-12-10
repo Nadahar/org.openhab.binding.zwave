@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
+import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.SerialMessage;
 import org.openhab.core.io.transport.serial.PortInUseException;
 import org.openhab.core.io.transport.serial.SerialPort;
@@ -78,8 +79,8 @@ public class ZWaveSerialHandler extends ZWaveControllerHandler {
 
     private boolean receiveTimeoutEnabled = false;
 
-    public ZWaveSerialHandler(Bridge thing, SerialPortManager serialPortManager) {
-        super(thing);
+    public ZWaveSerialHandler(Bridge thing, SerialPortManager serialPortManager, ZWaveConfigProvider configProvider) {
+        super(thing, configProvider);
         this.serialPortManager = serialPortManager;
     }
 

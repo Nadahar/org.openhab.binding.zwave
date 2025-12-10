@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
+import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.SerialMessage;
 import org.openhab.binding.zwave.internal.protocol.ZWaveController;
 import org.openhab.binding.zwave.internal.protocol.ZWaveDeviceClass.Specific;
@@ -61,6 +62,7 @@ public abstract class ZWaveControllerHandler extends BaseBridgeHandler implement
     private final Logger logger = LoggerFactory.getLogger(ZWaveControllerHandler.class);
 
     private volatile ZWaveController controller;
+    protected final @NonNull ZWaveConfigProvider configProvider;
 
     private Set<ZWaveEventListener> listeners = new HashSet<ZWaveEventListener>();
 
@@ -79,8 +81,9 @@ public abstract class ZWaveControllerHandler extends BaseBridgeHandler implement
 
     private ScheduledFuture<?> healJob = null;
 
-    public ZWaveControllerHandler(@NonNull Bridge bridge) {
+    public ZWaveControllerHandler(@NonNull Bridge bridge, @NonNull ZWaveConfigProvider configProvider) {
         super(bridge);
+        this.configProvider = configProvider;
     }
 
     @Override
@@ -188,7 +191,7 @@ public abstract class ZWaveControllerHandler extends BaseBridgeHandler implement
         config.put("maxAwakePeriod", maxAwakePeriod.toString());
 
         // TODO: Handle soft reset?
-        controller = new ZWaveController(this, config);
+        controller = new ZWaveController(this, configProvider);
         controller.addEventListener(this);
 
         // Set controller properties for Network Map since it will not be healed

@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.eclipse.jdt.annotation.NonNull;
+import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.ZWaveDeviceClass.Basic;
 import org.openhab.binding.zwave.internal.protocol.ZWaveDeviceClass.Generic;
 import org.openhab.binding.zwave.internal.protocol.ZWaveDeviceClass.Specific;
@@ -40,6 +42,7 @@ public class ZWaveInclusionController implements ZWaveEventListener {
     private final Logger logger = LoggerFactory.getLogger(ZWaveInclusionController.class);
 
     private final ZWaveController controller;
+    private final @NonNull ZWaveConfigProvider configProvider;
     private Timer timer = new Timer();
     private TimerTask timerTask = null;
     private ZWaveInclusionState inclusionState = ZWaveInclusionState.Unknown;
@@ -60,9 +63,11 @@ public class ZWaveInclusionController implements ZWaveEventListener {
      * @param controller the {@link ZWaveController} to include a device into
      * @param networkSecurityKey the network security key
      */
-    public ZWaveInclusionController(ZWaveController controller, String networkSecurityKey) {
+    public ZWaveInclusionController(ZWaveController controller, String networkSecurityKey,
+            @NonNull ZWaveConfigProvider configProvider) {
         this.controller = controller;
         this.networkSecurityKey = networkSecurityKey;
+        this.configProvider = configProvider;
     }
 
     /**
@@ -215,7 +220,7 @@ public class ZWaveInclusionController implements ZWaveEventListener {
                 logger.debug("NODE {}: Inclusion protocol completed.", nodeId);
 
                 // Create a new node
-                ZWaveNode newNode = new ZWaveNode(controller.getHomeId(), nodeId, controller);
+                ZWaveNode newNode = new ZWaveNode(controller.getHomeId(), nodeId, controller, configProvider);
                 ZWaveDeviceClass deviceClass = newNode.getDeviceClass();
                 deviceClass.setBasicDeviceClass(basicClass);
                 deviceClass.setGenericDeviceClass(genericClass);

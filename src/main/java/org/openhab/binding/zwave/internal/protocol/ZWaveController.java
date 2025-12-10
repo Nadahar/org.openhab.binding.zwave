@@ -24,7 +24,9 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.SerialMessage.SerialMessageClass;
 import org.openhab.binding.zwave.internal.protocol.ZWaveDeviceClass.Basic;
 import org.openhab.binding.zwave.internal.protocol.ZWaveTransaction.TransactionState;
@@ -81,10 +83,12 @@ public class ZWaveController {
 
     public static final int TRANSMIT_OPTION_ACK = 0x01;
     public static final int TRANSMIT_OPTION_AUTO_ROUTE = 0x04;
+    @SuppressWarnings("unused")
     private static final int TRANSMIT_OPTION_EXPLORE = 0x20;
 
     private final ConcurrentHashMap<Integer, ZWaveNode> zwaveNodes = new ConcurrentHashMap<Integer, ZWaveNode>();
     private final ArrayList<ZWaveEventListener> zwaveEventListeners = new ArrayList<ZWaveEventListener>();
+    private final @NonNull ZWaveConfigProvider configProvider;
 
     private int zWaveResponseTimeout = ZWAVE_RESPONSE_TIMEOUT; // TODO: Not currently used
 
@@ -117,8 +121,8 @@ public class ZWaveController {
     private final ZWaveIoHandler ioHandler;
 
     // Constructors
-    public ZWaveController(ZWaveIoHandler handler) {
-        this(handler, new HashMap<String, String>());
+    public ZWaveController(ZWaveIoHandler handler, @NonNull ZWaveConfigProvider configProvider) {
+        this(handler, configProvider, new HashMap<String, String>());
     }
 
     public void shutdown() {
@@ -139,7 +143,8 @@ public class ZWaveController {
      * @throws SerialInterfaceException
      *             when a connection error occurs.
      */
-    public ZWaveController(ZWaveIoHandler handler, Map<String, String> config) {
+    public ZWaveController(ZWaveIoHandler handler, @NonNull ZWaveConfigProvider configProvider,
+            Map<String, String> config) {
         masterController = "true".equals(config.get("masterController"));
         sucNode = config.containsKey("sucNode") ? Integer.parseInt(config.get("sucNode")) : 0;
         softReset = "true".equals(config.get("softReset"));
@@ -163,6 +168,7 @@ public class ZWaveController {
         logger.info("ZWave timeout is set to {}ms. Soft reset is {}.", zWaveResponseTimeout, softReset);
 
         ioHandler = handler;
+        this.configProvider = configProvider;
 
         // We have a delay in running the initialisation sequence to allow any frames queued in the controller to be
         // received before sending the init sequence. This avoids protocol errors (CAN errors).
@@ -173,7 +179,7 @@ public class ZWaveController {
     /**
      * Update the Controller Parameter maxAwakePeriod when changed from the Controller Handler class.
      * Used in Node class only as backstop for "Go to Sleep" message
-     * 
+     *
      * @param maxAwakeProperty Updated maxAwakePeriod from the Controller Handler
      */
     public void updateControllerProperty(int maxAwakeProperty) {
@@ -434,7 +440,7 @@ public class ZWaveController {
                     // made as the deserialiser doesn't call the constructor
                     serializedOk = true;
                     logger.debug("NODE {}: Restore from config: Ok.", nodeId);
-                    node.setRestoredFromConfigfile(controller);
+                    node.setRestoredFromConfigfile(controller, configProvider);
 
                     // Set the controller and node references for all command classes
                     for (ZWaveCommandClass commandClass : node.getCommandClasses(0)) {
@@ -470,7 +476,7 @@ public class ZWaveController {
 
             // Create a new node if it wasn't deserialised ok
             if (node == null) {
-                node = new ZWaveNode(controller.homeId, nodeId, controller);
+                node = new ZWaveNode(controller.homeId, nodeId, controller, configProvider);
             }
 
             if (nodeId == controller.ownNodeId) {
@@ -724,7 +730,7 @@ public class ZWaveController {
                 break;
         }
 
-        inclusionController = new ZWaveInclusionController(this, networkSecurityKey);
+        inclusionController = new ZWaveInclusionController(this, networkSecurityKey, configProvider);
         inclusionController.startInclusion(highPower, networkWide);
     }
 
@@ -738,7 +744,7 @@ public class ZWaveController {
             return;
         }
 
-        inclusionController = new ZWaveInclusionController(this, networkSecurityKey);
+        inclusionController = new ZWaveInclusionController(this, networkSecurityKey, configProvider);
         inclusionController.startExclusion();
     }
 

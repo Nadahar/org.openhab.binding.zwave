@@ -33,6 +33,8 @@ import javax.xml.xpath.XPathFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mockito;
+import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.ZWaveEndpoint;
 import org.openhab.binding.zwave.internal.protocol.ZWaveNode;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveAlarmCommandClass;
@@ -113,7 +115,8 @@ public class ZWaveNodeSerializerTest {
     }
 
     private ZWaveNode createInitializedNode(int homeId, int nodeId) {
-        ZWaveNode node = new ZWaveNode(homeId, nodeId, null);
+        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+        ZWaveNode node = new ZWaveNode(homeId, nodeId, null, configProvider);
         node.setNodeStage(ZWaveNodeInitStage.DONE);
         return node;
     }

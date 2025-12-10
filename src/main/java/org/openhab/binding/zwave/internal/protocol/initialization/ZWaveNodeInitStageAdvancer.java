@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
 import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.protocol.ZWaveAssociation;
@@ -126,6 +127,7 @@ public class ZWaveNodeInitStageAdvancer {
 
     private final ZWaveNode node;
     private final ZWaveController controller;
+    private final @NonNull ZWaveConfigProvider configProvider;
     private boolean restoredFromConfigfile = false;
 
     private Thread initialisationThread;
@@ -145,9 +147,10 @@ public class ZWaveNodeInitStageAdvancer {
      * @param node the node this advancer belongs to.
      * @param controller the controller to use
      */
-    public ZWaveNodeInitStageAdvancer(ZWaveNode node, ZWaveController controller) {
+    public ZWaveNodeInitStageAdvancer(ZWaveNode node, ZWaveController controller, ZWaveConfigProvider configProvider) {
         this.node = node;
         this.controller = controller;
+        this.configProvider = configProvider;
     }
 
     /**
@@ -618,7 +621,7 @@ public class ZWaveNodeInitStageAdvancer {
             setCurrentStage(ZWaveNodeInitStage.DISCOVERY_COMPLETE);
 
             setCurrentStage(ZWaveNodeInitStage.VERSION);
-            thingType = ZWaveConfigProvider.getThingType(node);
+            thingType = configProvider.getThingType(node);
             if (thingType == null) {
                 logger.debug("NODE {}: Node advancer: VERSION - thing is null!", node.getNodeId());
             }
@@ -710,7 +713,7 @@ public class ZWaveNodeInitStageAdvancer {
         // This stage reads information from the database to allow us to modify the configuration
         logger.debug("NODE {}: Node advancer: UPDATE_DATABASE", node.getNodeId());
 
-        thingType = ZWaveConfigProvider.getThingType(node);
+        thingType = configProvider.getThingType(node);
         if (thingType == null) {
             logger.debug("NODE {}: Node advancer: UPDATE_DATABASE - thing is null!", node.getNodeId());
         } else {
@@ -836,11 +839,11 @@ public class ZWaveNodeInitStageAdvancer {
         ZWaveAssociationCommandClass associationCommandClass = (ZWaveAssociationCommandClass) node
                 .getCommandClass(CommandClass.COMMAND_CLASS_ASSOCIATION);
         if (multiAssociationCommandClass != null || associationCommandClass != null) {
-            thingType = ZWaveConfigProvider.getThingType(node);
+            thingType = configProvider.getThingType(node);
             if (thingType == null) {
                 logger.debug("NODE {}: Node advancer: ASSOCIATIONS - thing is null!", node.getNodeId());
             } else {
-                ConfigDescription config = ZWaveConfigProvider.getThingTypeConfig(thingType);
+                ConfigDescription config = configProvider.getThingTypeConfig(thingType);
                 if (config == null) {
                     logger.debug("NODE {}: Node advancer: ASSOCIATIONS - no configuration!", node.getNodeId());
                 } else {
@@ -900,7 +903,7 @@ public class ZWaveNodeInitStageAdvancer {
                 logger.debug("NODE {}: Node advancer: SET_ASSOCIATION - ASSOCIATION class not supported",
                         node.getNodeId());
             } else {
-                thingType = ZWaveConfigProvider.getThingType(node);
+                thingType = configProvider.getThingType(node);
                 if (thingType == null) {
                     logger.debug("NODE {}: Node advancer: SET_ASSOCIATION - thing is null!", node.getNodeId());
                 } else {
@@ -1024,11 +1027,11 @@ public class ZWaveNodeInitStageAdvancer {
             logger.debug("NODE {}: Node advancer: GET_CONFIGURATION - CONFIGURATION class not supported",
                     node.getNodeId());
         } else {
-            thingType = ZWaveConfigProvider.getThingType(node);
+            thingType = configProvider.getThingType(node);
             if (thingType == null) {
                 logger.debug("NODE {}: Node advancer: GET_CONFIGURATION - thing is null!", node.getNodeId());
             } else {
-                ConfigDescription cfgConfig = ZWaveConfigProvider.getThingTypeConfig(thingType);
+                ConfigDescription cfgConfig = configProvider.getThingTypeConfig(thingType);
                 if (cfgConfig == null) {
                     logger.debug("NODE {}: Node advancer: GET_CONFIGURATION - no configuration!", node.getNodeId());
                 } else {

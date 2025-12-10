@@ -50,9 +50,13 @@ public class ZWaveDiscoveryService extends AbstractDiscoveryService implements Z
 
     private final ZWaveControllerHandler controllerHandler;
 
-    public ZWaveDiscoveryService(ZWaveControllerHandler coordinatorHandler, int searchTime) {
+    private final ZWaveConfigProvider configProvider;
+
+    public ZWaveDiscoveryService(ZWaveControllerHandler coordinatorHandler, ZWaveConfigProvider configProvider,
+            int searchTime) {
         super(searchTime);
         this.controllerHandler = coordinatorHandler;
+        this.configProvider = configProvider;
         logger.debug("Creating ZWave discovery service for {} with scan time of {}",
                 controllerHandler.getThing().getUID(), searchTime);
     }
@@ -70,7 +74,7 @@ public class ZWaveDiscoveryService extends AbstractDiscoveryService implements Z
 
     @Override
     public Set<ThingTypeUID> getSupportedThingTypes() {
-        return ZWaveConfigProvider.getSupportedThingTypes();
+        return configProvider.getSupportedThingTypes();
     }
 
     @Override
@@ -158,7 +162,7 @@ public class ZWaveDiscoveryService extends AbstractDiscoveryService implements Z
 
         // Search the database for this product information
         ZWaveProduct foundProduct = null;
-        for (ZWaveProduct product : ZWaveConfigProvider.getProductIndex()) {
+        for (ZWaveProduct product : configProvider.getProductIndex()) {
             if (product == null) {
                 continue;
             }
@@ -192,7 +196,7 @@ public class ZWaveDiscoveryService extends AbstractDiscoveryService implements Z
                     foundProduct.getThingTypeUID());
 
             // And create the new thing
-            ThingType thingType = ZWaveConfigProvider.getThingType(foundProduct.getThingTypeUID());
+            ThingType thingType = configProvider.getThingType(foundProduct.getThingTypeUID());
             label += String.format(": %s", thingType.getLabel());
 
             thingTypeUID = foundProduct.getThingTypeUID();
