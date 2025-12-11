@@ -314,7 +314,7 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
      */
     private boolean updateThingType() {
         // If the thing type is still the default, then see if we can change
-        if (getThing().getThingTypeUID().equals(ZWaveBindingConstants.ZWAVE_THING_UID) == false) {
+        if (!getThing().getThingTypeUID().equals(ZWaveBindingConstants.ZWAVE_THING_UID)) {
             finalTypeSet = true;
             return false;
         }
@@ -1523,8 +1523,8 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
                     updateNodeProperties();
 
                     // Do we need to change type?
-                    if (finalTypeSet == false) {
-                        if (updateThingType() == true) {
+                    if (!finalTypeSet) {
+                        if (updateThingType()) {
                             // We updated the type.
                             // The thing will have already been disposed of so let's get the hell out of here!
                             return;

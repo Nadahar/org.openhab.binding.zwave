@@ -37,7 +37,6 @@ import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveUserCodeCom
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveUserCodeCommandClass.UserCode;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveUserCodeCommandClass.UserIdStatusType;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveWakeUpCommandClass;
-import org.openhab.core.common.registry.RegistryChangeListener;
 import org.openhab.core.config.core.ConfigDescription;
 import org.openhab.core.config.core.ConfigDescriptionBuilder;
 import org.openhab.core.config.core.ConfigDescriptionParameter;
@@ -55,6 +54,7 @@ import org.openhab.core.thing.ThingTypeUID;
 import org.openhab.core.thing.ThingUID;
 import org.openhab.core.thing.type.ThingType;
 import org.openhab.core.thing.type.ThingTypeRegistry;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
@@ -67,12 +67,11 @@ import org.slf4j.LoggerFactory;
  */
 @NonNullByDefault
 @Component(immediate = true, service = { ConfigDescriptionProvider.class, ConfigOptionProvider.class, ZWaveConfigProvider.class })
-public class ZWaveConfigProviderImpl
-        implements ConfigDescriptionProvider, ConfigOptionProvider, RegistryChangeListener<ThingType>, ZWaveConfigProvider {
+public class ZWaveConfigProviderImpl implements ZWaveConfigProvider {
     private final Logger logger = LoggerFactory.getLogger(ZWaveConfigProviderImpl.class);
 
     private @Nullable volatile ThingRegistry thingRegistry;
-    private @Nullable volatile ThingTypeRegistry thingTypeRegistry;
+    private final ThingTypeRegistry thingTypeRegistry;
     private @Nullable volatile ConfigDescriptionRegistry configDescriptionRegistry;
 
     private final Set<ThingTypeUID> zwaveThingTypeUIDs = new CopyOnWriteArraySet<ThingTypeUID>();
@@ -91,6 +90,12 @@ public class ZWaveConfigProviderImpl
             CommandClass.COMMAND_CLASS_THERMOSTAT_OPERATING_STATE, CommandClass.COMMAND_CLASS_THERMOSTAT_SETPOINT,
             CommandClass.COMMAND_CLASS_THERMOSTAT_FAN_MODE, CommandClass.COMMAND_CLASS_THERMOSTAT_FAN_STATE);
 
+    @Activate
+    public ZWaveConfigProviderImpl(@Reference ThingTypeRegistry thingTypeRegistry) {
+        this.thingTypeRegistry = thingTypeRegistry;
+        initialiseZWaveThings();
+    }
+
     @Reference
     protected void setThingRegistry(ThingRegistry thingRegistry) {
         this.thingRegistry = thingRegistry;
@@ -98,20 +103,6 @@ public class ZWaveConfigProviderImpl
 
     protected void unsetThingRegistry(ThingRegistry thingRegistry) {
         this.thingRegistry = null;
-    }
-
-    @Reference
-    protected void setThingTypeRegistry(ThingTypeRegistry thingTypeRegistry) {
-        this.thingTypeRegistry = thingTypeRegistry;
-        initialiseZWaveThings();
-    }
-
-    protected void unsetThingTypeRegistry(ThingTypeRegistry thingTypeRegistry) {
-        this.thingTypeRegistry = null;
-        synchronized (productIndex) {
-            zwaveThingTypeUIDs.clear();
-            productIndex.clear();
-        }
     }
 
     @Reference
@@ -124,13 +115,13 @@ public class ZWaveConfigProviderImpl
     }
 
     @Override
-    public Collection<ConfigDescription> getConfigDescriptions(Locale locale) {
+    public Collection<ConfigDescription> getConfigDescriptions(@Nullable Locale locale) {
         logger.debug("getConfigDescriptions called");
         return Collections.emptySet();
     }
 
     @Override
-    public ConfigDescription getConfigDescription(URI uri, Locale locale) {
+    public @Nullable ConfigDescription getConfigDescription(URI uri, @Nullable Locale locale) {
         if (!"thing".equals(uri.getScheme()) && !"thing-type".equals(uri.getScheme())) {
             return null;
         }
@@ -450,23 +441,28 @@ public class ZWaveConfigProviderImpl
     }
 
     @Override
-    public ThingType getThingType(ThingTypeUID thingTypeUID) {
+    public @Nullable ThingType getThingType(ThingTypeUID thingTypeUID) {
         ThingTypeRegistry ttRegistry = thingTypeRegistry;
         return ttRegistry == null ? null : ttRegistry.getThingType(thingTypeUID);
     }
 
     @Override
-    public ThingType getThingType(ZWaveNode node) {
+    public @Nullable ThingType getThingType(ZWaveNode node) {
         ThingTypeRegistry ttRegistry = thingTypeRegistry;
         if (ttRegistry == null) {
             logger.debug("{}: Unable to get thing type as registry hasn't been set", node.getNodeId());
             return null;
         }
 
+        boolean trace = logger.isTraceEnabled();
         for (ZWaveProduct product : getProductIndex()) {
-            logger.trace("{}: Checking {}: {}", node.getNodeId(), product.getThingTypeUID(), product);
-            if (product.match(node) == true) {
-                logger.trace("{}: Matched {}: {}", node.getNodeId(), product.getThingTypeUID(), product);
+            if (trace) {
+                logger.trace("{}: Checking {}: {}", node.getNodeId(), product.getThingTypeUID(), product);
+            }
+            if (product.match(node)) {
+                if (trace) {
+                    logger.trace("{}: Matched {}: {}", node.getNodeId(), product.getThingTypeUID(), product);
+                }
                 return ttRegistry.getThingType(product.thingTypeUID);
             }
         }
@@ -481,8 +477,8 @@ public class ZWaveConfigProviderImpl
      * @return the {@link ConfigDescription}
      */
     @Override
-    public ConfigDescription getThingTypeConfig(ThingType type) {
-        URI configUri = type.getConfigDescriptionURI();
+    public @Nullable ConfigDescription getThingTypeConfig(@Nullable ThingType type) {
+        URI configUri = type == null ? null : type.getConfigDescriptionURI();
         if (configUri == null) {
             return null;
         }
@@ -530,8 +526,8 @@ public class ZWaveConfigProviderImpl
     }
 
     @Override
-    public Collection<ParameterOption> getParameterOptions(URI uri, String param, String context,
-            Locale locale) {
+    public @Nullable Collection<ParameterOption> getParameterOptions(URI uri, String param, @Nullable String context,
+        @Nullable Locale locale) {
         // We need to update the options of all requests for association groups...
         if (!"thing".equals(uri.getScheme())) {
             return null;
@@ -625,17 +621,14 @@ public class ZWaveConfigProviderImpl
         return Collections.unmodifiableList(options);
     }
 
-    @Override
-    public void added(ThingType element) {
+    public void added(ThingType element) { // TODO: (Nad) These
         updateThingType(null, element);
     }
 
-    @Override
     public void removed(ThingType element) {
         removeThingType(element);
     }
 
-    @Override
     public void updated(ThingType oldElement, ThingType element) {
         updateThingType(oldElement, element);
     }

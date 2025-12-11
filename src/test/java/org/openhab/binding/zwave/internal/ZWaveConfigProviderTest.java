@@ -18,8 +18,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.openhab.core.config.core.ConfigDescription;
 import org.openhab.core.config.core.ConfigDescriptionParameter;
+import org.openhab.core.thing.type.ThingTypeRegistry;
 
 /**
  *
@@ -30,7 +32,8 @@ public class ZWaveConfigProviderTest {
 
     @Test
     public void getConfigDescription() throws URISyntaxException {
-        ZWaveConfigProviderImpl provider = new ZWaveConfigProviderImpl();
+        ThingTypeRegistry thingTypeRegistry = Mockito.mock(ThingTypeRegistry.class);
+        ZWaveConfigProviderImpl provider = new ZWaveConfigProviderImpl(thingTypeRegistry);
 
         // Serial controller needs to return null for the thing-type
         URI uri = new URI("thing-type:zwave:serial_zstick");
