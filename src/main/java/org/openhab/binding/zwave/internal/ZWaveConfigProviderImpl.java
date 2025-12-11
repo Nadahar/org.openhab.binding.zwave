@@ -27,6 +27,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
+import org.openhab.binding.zwave.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.handler.ZWaveControllerHandler;
 import org.openhab.binding.zwave.internal.protocol.ZWaveEndpoint;
 import org.openhab.binding.zwave.internal.protocol.ZWaveNode;
@@ -65,10 +66,10 @@ import org.slf4j.LoggerFactory;
  *
  */
 @NonNullByDefault
-@Component(immediate = true, service = { ConfigDescriptionProvider.class, ConfigOptionProvider.class })
-public class ZWaveConfigProvider
-        implements ConfigDescriptionProvider, ConfigOptionProvider, RegistryChangeListener<ThingType> {
-    private final Logger logger = LoggerFactory.getLogger(ZWaveConfigProvider.class);
+@Component(immediate = true, service = { ConfigDescriptionProvider.class, ConfigOptionProvider.class, ZWaveConfigProvider.class })
+public class ZWaveConfigProviderImpl
+        implements ConfigDescriptionProvider, ConfigOptionProvider, RegistryChangeListener<ThingType>, ZWaveConfigProvider {
+    private final Logger logger = LoggerFactory.getLogger(ZWaveConfigProviderImpl.class);
 
     private @Nullable volatile ThingRegistry thingRegistry;
     private @Nullable volatile ThingTypeRegistry thingTypeRegistry;
@@ -123,13 +124,13 @@ public class ZWaveConfigProvider
     }
 
     @Override
-    public Collection<ConfigDescription> getConfigDescriptions(@Nullable Locale locale) {
+    public Collection<ConfigDescription> getConfigDescriptions(Locale locale) {
         logger.debug("getConfigDescriptions called");
         return Collections.emptySet();
     }
 
     @Override
-    public @Nullable ConfigDescription getConfigDescription(URI uri, @Nullable Locale locale) {
+    public ConfigDescription getConfigDescription(URI uri, Locale locale) {
         if (!"thing".equals(uri.getScheme()) && !"thing-type".equals(uri.getScheme())) {
             return null;
         }
@@ -433,12 +434,14 @@ public class ZWaveConfigProvider
         }
     }
 
+    @Override
     public List<ZWaveProduct> getProductIndex() {
         synchronized (productIndex) {
             return List.copyOf(productIndex);
         }
     }
 
+    @Override
     public Set<ThingTypeUID> getSupportedThingTypes() {
         if (zwaveThingTypeUIDs.size() == 0) {
             initialiseZWaveThings();
@@ -446,12 +449,14 @@ public class ZWaveConfigProvider
         return zwaveThingTypeUIDs;
     }
 
-    public @Nullable ThingType getThingType(ThingTypeUID thingTypeUID) {
+    @Override
+    public ThingType getThingType(ThingTypeUID thingTypeUID) {
         ThingTypeRegistry ttRegistry = thingTypeRegistry;
         return ttRegistry == null ? null : ttRegistry.getThingType(thingTypeUID);
     }
 
-    public @Nullable ThingType getThingType(ZWaveNode node) {
+    @Override
+    public ThingType getThingType(ZWaveNode node) {
         ThingTypeRegistry ttRegistry = thingTypeRegistry;
         if (ttRegistry == null) {
             logger.debug("{}: Unable to get thing type as registry hasn't been set", node.getNodeId());
@@ -475,7 +480,7 @@ public class ZWaveConfigProvider
      * @param type the {@link ThingType} required to retrieve the configuration
      * @return the {@link ConfigDescription}
      */
-    @Nullable
+    @Override
     public ConfigDescription getThingTypeConfig(ThingType type) {
         URI configUri = type.getConfigDescriptionURI();
         if (configUri == null) {
@@ -525,8 +530,8 @@ public class ZWaveConfigProvider
     }
 
     @Override
-    public @Nullable Collection<ParameterOption> getParameterOptions(URI uri, String param, @Nullable String context,
-            @Nullable Locale locale) {
+    public Collection<ParameterOption> getParameterOptions(URI uri, String param, String context,
+            Locale locale) {
         // We need to update the options of all requests for association groups...
         if (!"thing".equals(uri.getScheme())) {
             return null;

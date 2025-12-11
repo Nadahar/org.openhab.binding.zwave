@@ -30,7 +30,7 @@ public class ZWaveConfigProviderTest {
 
     @Test
     public void getConfigDescription() throws URISyntaxException {
-        ZWaveConfigProvider provider = new ZWaveConfigProvider();
+        ZWaveConfigProviderImpl provider = new ZWaveConfigProviderImpl();
 
         // Serial controller needs to return null for the thing-type
         URI uri = new URI("thing-type:zwave:serial_zstick");

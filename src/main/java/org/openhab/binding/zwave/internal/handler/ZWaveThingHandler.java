@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.zwave.ZWaveBindingConstants;
-import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
+import org.openhab.binding.zwave.ZWaveConfigProvider;
 import org.openhab.binding.zwave.internal.ZWaveProduct;
 import org.openhab.binding.zwave.internal.handler.ZWaveThingChannel.DataType;
 import org.openhab.binding.zwave.internal.protocol.ZWaveAssociation;

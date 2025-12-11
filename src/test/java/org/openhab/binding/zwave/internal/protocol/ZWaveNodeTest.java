@@ -19,7 +19,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
+import org.openhab.binding.zwave.ZWaveConfigProvider;
+import org.openhab.binding.zwave.internal.ZWaveConfigProviderImpl;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveAssociationCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveMultiAssociationCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveMultiInstanceCommandClass;
@@ -36,7 +37,7 @@ public class ZWaveNodeTest {
     public void setAssociation() {
         ZWaveController controller = null;
         ZWaveEndpoint endpoint = null;
-        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProviderImpl.class);
         ZWaveNode node = new ZWaveNode(1, 2, controller, configProvider);
         node.addCommandClass(new ZWaveAssociationCommandClass(node, controller, endpoint));
         node.addCommandClass(new ZWaveMultiAssociationCommandClass(node, controller, endpoint));
@@ -80,7 +81,7 @@ public class ZWaveNodeTest {
 
         ZWaveController controller = null;
         ZWaveEndpoint endpoint = null;
-        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProviderImpl.class);
         ZWaveNode node = new ZWaveNode(1, 2, controller, configProvider);
         node.addCommandClass(new ZWaveMultiInstanceCommandClass(node, controller, endpoint));
 

@@ -16,7 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
+import org.openhab.binding.zwave.ZWaveConfigProvider;
+import org.openhab.binding.zwave.internal.ZWaveConfigProviderImpl;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveAlarmCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveCommandClass.CommandClass;
@@ -29,7 +30,7 @@ import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveCommandClas
 public class ZWaveEndpointTest {
     @Test
     public void testSupportedCommandClasses() {
-        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProviderImpl.class);
         ZWaveController controller = new ZWaveController(null, configProvider);
         ZWaveNode node = new ZWaveNode(0, 0, controller, configProvider);
         ZWaveEndpoint endpoint = new ZWaveEndpoint(0);

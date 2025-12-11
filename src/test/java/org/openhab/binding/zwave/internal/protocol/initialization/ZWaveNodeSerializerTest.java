@@ -34,7 +34,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
-import org.openhab.binding.zwave.internal.ZWaveConfigProvider;
+import org.openhab.binding.zwave.ZWaveConfigProvider;
+import org.openhab.binding.zwave.internal.ZWaveConfigProviderImpl;
 import org.openhab.binding.zwave.internal.protocol.ZWaveEndpoint;
 import org.openhab.binding.zwave.internal.protocol.ZWaveNode;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveAlarmCommandClass;
@@ -115,7 +116,7 @@ public class ZWaveNodeSerializerTest {
     }
 
     private ZWaveNode createInitializedNode(int homeId, int nodeId) {
-        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProvider.class);
+        ZWaveConfigProvider configProvider = Mockito.mock(ZWaveConfigProviderImpl.class);
         ZWaveNode node = new ZWaveNode(homeId, nodeId, null, configProvider);
         node.setNodeStage(ZWaveNodeInitStage.DONE);
         return node;
